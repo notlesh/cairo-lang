@@ -158,6 +158,14 @@ func traverse_edge{
 
     alloc_locals;
 
+    // this hint (and others in this fn) appear to be using the descent_map generated above to make
+    // simple jumps to guide through the tree traversal.
+    //
+    // actually, there are lots of hints in this file that look relevant to trie traversal. testing
+    // these may be difficult; we may want some test vectors to help with this (could be os program
+    // input + expected output or something more granular).
+    //
+
     %{
         descend = descent_map.get((ids.height, ids.path))
         memory[ap] = 0 if descend is None else 1
@@ -476,6 +484,19 @@ func patricia_update_using_update_constants{hash_ptr: HashBuiltin*, range_check_
         return ();
     }
 
+    // this hint prepares for traversing both previous and new trees. it takes some info which is expected
+    // to be done previously in other hints (the preimage, notably, from several hints in state.cairo) and
+    // prepares a "guessed" descent_map which is meant to guide the expensive tree traversal proof through
+    // a traversal that hits all required nodes without taking longer or more paths than needed.
+    //
+    // the "outputs" are put in `common_args` which are used below with minimal `vm_enter_scope` hints
+    //
+    // implementation ideas/notes:
+    // * there is some pretty opaque memory access (see modifications.append(...) below)
+    // * build_update_tree is pulled in from merkle_tree.py; probably needs an impl / tests
+    // * same with patricia_guess_descents pulled in from patricia_utils.py, this is much more code (and
+    //   additional dependencies)
+    //    * it is probably worth seeing if there is existing code to help here
     %{
         from starkware.cairo.common.patricia_utils import canonic, patricia_guess_descents
         from starkware.python.merkle_tree import build_update_tree

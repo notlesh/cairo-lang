@@ -46,6 +46,8 @@ func main{
     let range_check_ptr = range_check_ptr + 1;
 
     let (initial_carried_outputs: OsCarriedOutputs*) = alloc();
+    // this hint initializes `os_input` from the given `program_input`, using the python "marshmallow dataclass"
+    // serialization library
     %{
         from starkware.starknet.core.os.os_input import StarknetOsInput
 
@@ -86,6 +88,7 @@ func main{
     let final_carried_outputs = outputs;
 
     local initial_state_updates_ptr: felt*;
+    // this hint computes storage commitments and prepares a new execution scope (popped after state_update() is called)
     %{
         # This hint shouldn't be whitelisted.
         vm_enter_scope(dict(

@@ -206,6 +206,10 @@ func contract_class_update{
     // Guess the initial and final roots of the contract class tree.
     local initial_root;
     local final_root;
+    // this hint prepares a preimage to be consumed by `patricia_update_using_update_constants()`
+    // in patricia_with_sponge.cairo. (this is called about 35 lines below)
+    //
+    // the preimage is prepared on the os_input using the `contract_class_commitment_info`
     %{
         ids.initial_root = os_input.contract_class_commitment_info.previous_root
         ids.final_root = os_input.contract_class_commitment_info.updated_root
@@ -319,6 +323,7 @@ func contract_state_update{hash_ptr: HashBuiltin*, range_check_ptr, state_update
 
     // Hash the entries of the contract state changes to prepare the input for the commitment tree
     // multi-update.
+    // TODO: what is "multi-update"?
     let (local hashed_state_changes: DictAccess*) = alloc();
     local n_contract_state_changes = (squashed_dict_end - squashed_dict) / DictAccess.SIZE;
     // Make room for number of state updates.
@@ -341,6 +346,15 @@ func contract_state_update{hash_ptr: HashBuiltin*, range_check_ptr, state_update
     local initial_root;
     local final_root;
 
+    // this hint prepares a preimage to be consumed by `patricia_update_using_update_constants()`
+    // in patricia_with_sponge.cairo. (this is called about 20 lines below)
+    //
+    // the preimage is prepared on the os_input using the `contract_state_commitment_info`
+    //
+    // Note that the function we are in (contract_state_update) not only has this hint+patricia_update,
+    // but also calls `hash_state_changes` (before this) which has a similar hint.
+    // One big difference between the two is that this one is only called once while the other
+    // is part of a recursive call (hash_state_changes())
     %{
         ids.initial_root = os_input.contract_state_commitment_info.previous_root
         ids.final_root = os_input.contract_state_commitment_info.updated_root
@@ -416,6 +430,19 @@ func hash_state_changes{
     local initial_contract_state_root;
     local final_contract_state_root;
 
+    // this hint is part of the recursive contract state trie walk.
+    // note that we use `commitment_info_by_address`, which comes from the hint in
+    // os.cairo main() which uses `execution_helper.compute_storage_commitments()`.
+    //
+    // that hint is called before this one.
+    //
+    // Question: is it called on old or new data (is it computing old or new state roots)?
+    //     * depends on how execution_helper is initialized
+    //     * this appears to be given as a param to OsHints (os_input.py) but I don't see where it is called
+    //     * TODO ^
+    //
+    // Note that the containing function we are in (hash_state_changes) is recursive, and this
+    // hint is part of that recursion.
     %{
         commitment_info = commitment_info_by_address[ids.state_changes.key]
         ids.initial_contract_state_root = commitment_info.previous_root
