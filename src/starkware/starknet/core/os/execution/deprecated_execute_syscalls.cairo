@@ -248,7 +248,7 @@ func execute_deploy_syscall{
     assert syscall_ptr.response = DeployResponse(
         contract_address=contract_address,
         constructor_retdata_size=0,
-        constructor_retdata=cast(0, felt*),
+        constructor_retdata=cast(nondet %{ segments.add() %}, felt*),
     );
 
     tempvar constructor_execution_context = new ExecutionContext(
